@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image & Thumbnail Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide text-blue-500 flex items-center gap-2">
+                ⚡ AI Generator App
+            </h1>
+            <div id="userStatus" class="hidden text-sm text-slate-400 flex items-center gap-3">
+                <span id="userEmailDisplay" class="text-slate-200"></span>
+                <button onclick="logout()" class="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1 rounded-lg text-xs hover:bg-red-500/25 transition">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-3xl mx-auto px-4 py-10 w-full flex-grow">
+
+        <!-- Auth Section (Sign Up / Login) -->
+        <div id="authSection" class="bg-cardBg border border-slate-800 p-8 rounded-2xl shadow-xl max-w-md mx-auto">
+            <h2 id="authTitle" class="text-2xl font-bold mb-2 text-center text-white">Welcome Back</h2>
+            <p id="authSubtitle" class="text-sm text-slate-400 mb-6 text-center">Login to access your AI studio</p>
+            
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1 font-semibold">Email Address</label>
+                    <input type="email" id="authEmail" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1 font-semibold">Password</label>
+                    <input type="password" id="authPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-lg transition">Login</button>
+            </form>
+
+            <div class="mt-6 text-center text-sm">
+                <p id="toggleAuthText" class="text-slate-400">Don't have an account? <button onclick="toggleAuthMode()" class="text-blue-400 hover:underline font-medium">Sign Up</button></p>
+            </div>
+        </div>
+
+        <!-- Dashboard / Generator Section -->
+        <div id="generatorSection" class="hidden space-y-8">
+            <div class="bg-cardBg border border-slate-800 p-8 rounded-2xl shadow-xl">
+                <h2 class="text-xl font-bold mb-6 text-white border-b border-slate-800 pb-4">Create New Design</h2>
+                
+                <form id="generatorForm" onsubmit="handleGenerate(event)" class="space-y-6">
+                    <!-- Image Upload -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Reference Image</label>
+                        <div class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition relative bg-slate-900/50" onclick="document.getElementById('imageInput').click()">
+                            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                            <div id="uploadPlaceholder">
+                                <p class="text-slate-300 font-medium">Click to upload reference image</p>
+                                <p class="text-xs text-slate-500 mt-1">PNG, JPG, WEBP supported</p>
+                            </div>
+                            <img id="imagePreview" class="hidden max-h-48 mx-auto rounded-lg object-contain">
+                        </div>
+                    </div>
+
+                    <!-- Design Type -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Design Type</label>
+                        <select id="designType" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                            <option value="YouTube Thumbnail Design">YouTube Thumbnail Design</option>
+                            <option value="Facebook Thumbnail Design">Facebook Thumbnail Design</option>
+                            <option value="Facebook Commercial Poster Design">Facebook Commercial Poster Design</option>
+                        </select>
+                    </div>
+
+                    <!-- Headline -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Headline / Title</label>
+                        <input type="text" id="headline" placeholder="Enter text or title for your design..." required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="generateBtn" class="w-full bg-primary hover:bg-blue-700 text-white font-medium py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <span>Generate Design</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Result Section -->
+            <div id="resultSection" class="hidden bg-cardBg border border-slate-800 p-8 rounded-2xl shadow-xl text-center space-y-6">
+                <h3 class="text-lg font-bold text-white">Generated Output</h3>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-center items-center">
+                    <img id="outputImage" class="max-h-96 rounded-lg object-contain shadow-md" alt="Generated Output">
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <a id="downloadBtn" download="generated-design.png" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-lg">Download Image</a>
+                    <button onclick="resetGenerator()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-6 py-2.5 rounded-xl font-medium transition border border-slate-700">Generate Again</button>
+                    <button onclick="clearAll()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-6 py-2.5 rounded-xl font-medium transition">Clear</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/60">
+        AI Image & Thumbnail Generator App &copy; 2026
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const WEBHOOK_URL = "https://mdbayjidislam195.app.n8n.cloud/webhook-test/ccc9196a-f735-425e-b2f7-1991e5e7e845";
+        let isSignUpMode = false;
+        let base64Image = "";
+
+        // Check Local Storage on Load
+        window.onload = function() {
+            const savedUser = localStorage.getItem("ai_app_user");
+            if (savedUser) {
+                showDashboard(savedUser);
+            }
+        };
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById("authTitle").innerText = isSignUpMode ? "Create Account" : "Welcome Back";
+            document.getElementById("authSubtitle").innerText = isSignUpMode ? "Sign up with email and password" : "Login to access your AI studio";
+            document.getElementById("authSubmitBtn").innerText = isSignUpMode ? "Sign Up" : "Login";
+            document.getElementById("toggleAuthText").innerHTML = isSignUpMode ? 
+                `Already have an account? <button onclick="toggleAuthMode()" class="text-blue-400 hover:underline font-medium">Login</button>` : 
+                `Don't have an account? <button onclick="toggleAuthMode()" class="text-blue-400 hover:underline font-medium">Sign Up</button>`;
+        }
+
+        function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById("authEmail").value;
+            localStorage.setItem("ai_app_user", email);
+            showDashboard(email);
+        }
+
+        function showDashboard(email) {
+            document.getElementById("authSection").classList.add("hidden");
+            document.getElementById("generatorSection").classList.remove("hidden");
+            document.getElementById("userStatus").classList.remove("hidden");
+            document.getElementById("userEmailDisplay").innerText = email;
+        }
+
+        function logout() {
+            localStorage.removeItem("ai_app_user");
+            document.getElementById("generatorSection").classList.add("hidden");
+            document.getElementById("userStatus").classList.add("hidden");
+            document.getElementById("authSection").classList.remove("hidden");
+            clearAll();
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    base64Image = e.target.result;
+                    const preview = document.getElementById("imagePreview");
+                    preview.src = base64Image;
+                    preview.classList.remove("hidden");
+                    document.getElementById("uploadPlaceholder").classList.add("hidden");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function handleGenerate(event) {
+            event.preventDefault();
+            const designType = document.getElementById("designType").value;
+            const headline = document.getElementById("headline").value;
+            const btn = document.getElementById("generateBtn");
+
+            if (!base64Image) {
+                alert("Please upload a reference image first!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Processing in n8n...`;
+
+            const payload = {
+                image: base64Image,
+                designType: designType,
+                headline: headline
+            };
+
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                // Assuming n8n returns an image URL or base64 in output/image property
+                const outputImageUrl = result.output || result.image || result.url || base64Image;
+                
+                document.getElementById("outputImage").src = outputImageUrl;
+                document.getElementById("downloadBtn").href = outputImageUrl;
+                document.getElementById("resultSection").classList.remove("hidden");
+                document.getElementById("resultSection").scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error("Webhook Error:", error);
+                alert("Failed to communicate with n8n webhook. Please check your network or n8n workflow configuration.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Generate Design</span>`;
+            }
+        }
+
+        function resetGenerator() {
+            document.getElementById("headline").value = "";
+            document.getElementById("resultSection").classList.add("hidden");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function clearAll() {
+            base64Image = "";
+            document.getElementById("generatorForm").reset();
+            document.getElementById("imagePreview").classList.add("hidden");
+            document.getElementById("uploadPlaceholder").classList.remove("hidden");
+            document.getElementById("resultSection").classList.add("hidden");
+        }
+    </script>
+</body>
+</html>
