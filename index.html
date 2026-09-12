@@ -81,18 +81,18 @@
 
                     <!-- Design Type -->
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Design Type</label>
-                        <select id="designType" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
-                            <option value="YouTube Thumbnail Design">YouTube Thumbnail Design</option>
-                            <option value="Facebook Thumbnail Design">Facebook Thumbnail Design</option>
-                            <option value="Facebook Commercial Poster Design">Facebook Commercial Poster Design</option>
+                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Platform</label>
+                        <select id="platform" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                            <option value="YouTube">YouTube</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Business / Corporate YouTube">Business / Corporate YouTube</option>
                         </select>
                     </div>
 
                     <!-- Headline -->
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Headline / Title</label>
-                        <input type="text" id="headline" placeholder="Enter text or title for your design..." required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                        <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Thumbnail Title</label>
+                        <input type="text" id="headline" placeholder="Enter the exact thumbnail title..." required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 transition">
                     </div>
 
                     <!-- Submit Button -->
@@ -186,8 +186,8 @@
 
         async function handleGenerate(event) {
             event.preventDefault();
-            const designType = document.getElementById("designType").value;
-            const headline = document.getElementById("headline").value;
+            const platform = document.getElementById("platform").value;
+            const title = document.getElementById("headline").value.trim();
             const btn = document.getElementById("generateBtn");
 
             if (!base64Image) {
@@ -195,33 +195,59 @@
                 return;
             }
 
+            if (!title) {
+                alert("Please enter a thumbnail title!");
+                return;
+            }
+
+            const imageFile = document.getElementById("imageInput").files[0];
+
             btn.disabled = true;
-            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Processing in n8n...`;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Processing in n8n...`;
 
             const payload = {
-                image: base64Image,
-                designType: designType,
-                headline: headline
+                referenceImage: base64Image,
+                fileName: imageFile ? imageFile.name : "reference-image",
+                mimeType: imageFile ? imageFile.type : "image/jpeg",
+                title: title,
+                platform: platform,
+                source: "ai-thumbnail-generator-web",
+                timestamp: new Date().toISOString()
             };
 
             try {
                 const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json'
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify(payload)
                 });
 
+                if (!response.ok) {
+                    throw new Error(`n8n webhook returned HTTP ${response.status}`);
+                }
+
                 const result = await response.json();
-                
-                // Assuming n8n returns an image URL or base64 in output/image property
-                const outputImageUrl = result.output || result.image || result.url || base64Image;
-                
+
+                if (result.success === false) {
+                    throw new Error(result.message || "n8n workflow failed");
+                }
+
+                const outputImageUrl =
+                    result.imageUrl ||
+                    result.output ||
+                    result.image ||
+                    result.url;
+
+                if (!outputImageUrl) {
+                    throw new Error("n8n did not return imageUrl.");
+                }
+
                 document.getElementById("outputImage").src = outputImageUrl;
                 document.getElementById("downloadBtn").href = outputImageUrl;
                 document.getElementById("resultSection").classList.remove("hidden");
-                document.getElementById("resultSection").scrollIntoView({ behavior: 'smooth' });
+                document.getElementById("resultSection").scrollIntoView({ behavior: "smooth" });
 
             } catch (error) {
                 console.error("Webhook Error:", error);
